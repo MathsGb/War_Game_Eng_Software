@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
+import random
 
 app = FastAPI()
 
@@ -67,6 +68,16 @@ class Jogador:
 
     def get_jogador(self):
         return [f'Jogador: {self.id}',f'cor: {self.cor_exercito}',f'objetivo: {self.objetivo}']
+
+class Dado:
+    def __init__(self, lados=6):
+        self.lados = lados
+
+    def jogar(self):
+        return random.randint(1, self.lados)
+    
+dado6 = Dado()  # Dado de 6 lados
+print(f"Resultado do lançamento do dado de 6 lados: {dado6.jogar()}")
 
 #----------- rotas ---------------
 
