@@ -11,10 +11,10 @@ def Cria_jogo(id):
 
 class Jogo:
     Cores_padrao = {
-    1: {'cor': 'vermelho' , 'disponivel': True},
-    2: {'cor': 'azul', 'disponivel': True},
-    3: {'cor': 'amarelo', 'disponivel': True},
-    4: {'cor': 'verde' , 'disponivel': True},
+        1: {'cor': 'vermelho', 'disponivel': True},
+        2: {'cor': 'azul', 'disponivel': True},
+        3: {'cor': 'amarelo', 'disponivel': True},
+        4: {'cor': 'verde', 'disponivel': True},
     }
     
     Objetivos_padrao = {
@@ -24,9 +24,16 @@ class Jogo:
         4: {'objetivo': 'Libertar a Bosnia', 'disponivel': True},
     }
 
+    TERRITORIOS = [
+        'Território 1', 'Território 2', 'Território 3', 'Território 4',
+        'Território 5', 'Território 6', 'Território 7', 'Território 8'
+    ]
+
     def __init__(self, id):
         self.id = id
         self.lista_jogadores = {}
+        self.ordem_jogadores = []
+        self.territorios_distribuidos = {}
 
     def __str__(self):
         return(f'Sou o jogo {self.id}')
@@ -60,57 +67,49 @@ class Jogo:
             msg.append(player_atual.get_jogador())
         return msg
 
+    def definir_ordem_jogadores(self):
+        ids_jogadores = list(self.lista_jogadores.keys())
+        random.shuffle(ids_jogadores)  
+        self.ordem_jogadores = ids_jogadores  
+        return self.ordem_jogadores
+
+    def get_ordem_jogadores(self):
+        if not self.ordem_jogadores:
+            return "Ordem dos jogadores ainda não definida"
+        return self.ordem_jogadores
+
+    def distribuir_territorios(self):
+        territorios = self.TERRITORIOS.copy()
+        random.shuffle(territorios)  # Embaralha a lista de territórios
+        jogadores_ids = list(self.lista_jogadores.keys())
+        num_jogadores = len(jogadores_ids)
+        
+        if num_jogadores == 0:
+            return "Nenhum jogador para distribuir territórios"
+
+        territorios_por_jogador = len(territorios) // num_jogadores
+        distribuicao = {jogador_id: [] for jogador_id in jogadores_ids}
+
+        for i, territorio in enumerate(territorios):
+            jogador_id = jogadores_ids[i % num_jogadores]
+            distribuicao[jogador_id].append(territorio)
+
+        self.territorios_distribuidos = distribuicao
+        return distribuicao
+
+    def exibir_territorios(self):
+        if not self.territorios_distribuidos:
+            return "Territórios ainda não distribuídos"
+        return self.territorios_distribuidos
+
 class Jogador:
-    def __init__(self, id , cor, objetivo):
+    def __init__(self, id, cor, objetivo):
         self.id = id
         self.cor_exercito = cor
         self.objetivo = objetivo
 
     def get_jogador(self):
-        return [f'Jogador: {self.id}',f'cor: {self.cor_exercito}',f'objetivo: {self.objetivo}']
-    
-    def jogar_dado(self, dado):
-        self.resultado = 0
-        self.resultado = dado.jogar()
-
-class Dado:
-    def __init__(self, lados=6):
-        self.lados = lados
-
-    def jogar(self):
-        return random.randint(1, self.lados)
-    
-dado6 = Dado()  # Dado de 6 lados
-print(f"Resultado do lançamento do dado de 6 lados: {dado6.jogar()}")
-
-def comparar_resultados(atacante, defensor):
-    """Compara os resultados do atacante e do defensor e determina o vencedor."""
-    if atacante.resultado > defensor.resultado:
-        print(f"{atacante.id} venceu! ({atacante.resultado} contra {defensor.resultado})")
-    else:
-        print(f"{defensor.id} venceu! ({defensor.resultado} contra {atacante.resultado})")
-
-def jogar_batalha(atacante, defensor):
-    """Executa a batalha entre o atacante e o defensor."""
-    dado_atacante = Dado(6)  # Dado de 6 lados para o atacante
-    dado_defensor = Dado(6)  # Dado de 6 lados para o defensor
-
-    # Jogadores lançam os dados
-    atacante.jogar_dado(dado_atacante)
-    defensor.jogar_dado(dado_defensor)
-
-    print(f"{atacante.id} lançou o dado e obteve: {atacante.resultado}")
-    print(f"{defensor.id} lançou o dado e obteve: {defensor.resultado}")
-
-    # Compara os resultados
-    comparar_resultados(atacante, defensor)
-
-# Exemplo de uso
-atacante = Jogador('Atacante','vermelho','Chegar a lua')
-defensor = Jogador('Defensor','verde','Derrubar a torre Eifel')
-jogar_batalha(atacante, defensor)
-
-#----------- rotas ---------------
+        return [f'Jogador: {self.id}', f'cor: {self.cor_exercito}', f'objetivo: {self.objetivo}']
 
 @app.get("/")
 def home():
@@ -126,7 +125,7 @@ def novo_jogo(id_novo_jogo: int):
 def jogo_lobby(id_jogo: int):
     try:
         jogo_atual = lista_jogos[id_jogo]
-        return {1: {f'Voce agora está dentro de um jogo de número {jogo_atual.id}'},
+        return {1: {f'Você agora está dentro de um jogo de número {jogo_atual.id}'},
                 2: {f'Atualmente tenho {len(jogo_atual.lista_jogadores)} jogadores presentes'},
                 3: {f'Os jogadores atualmente são: {jogo_atual.exibir_jogadores()}'}
                 }
@@ -135,6 +134,42 @@ def jogo_lobby(id_jogo: int):
 
 @app.get("/{id_jogo}/add/{player_id}")
 def adiciona_player(id_jogo: int, player_id: int):
+    if id_jogo not in lista_jogos:
+        return {"erro": "Jogo não encontrado"}
     jogo_atual = lista_jogos[id_jogo]
+    if player_id in jogo_atual.lista_jogadores:
+        return {"erro": "Jogador já adicionado"}
     jogo_atual.add_jogador(player_id)
     return {'jogador adicionado com sucesso'}
+
+@app.get("/{id_jogo}/definir_ordem")
+def definir_ordem(id_jogo: int):
+    if id_jogo not in lista_jogos:
+        return {"erro": "Jogo não encontrado"}
+    jogo_atual = lista_jogos[id_jogo]
+    ordem = jogo_atual.definir_ordem_jogadores()
+    return {"Ordem dos jogadores": ordem}
+
+@app.get("/{id_jogo}/ordem")
+def obter_ordem(id_jogo: int):
+    if id_jogo not in lista_jogos:
+        return {"erro": "Jogo não encontrado"}
+    jogo_atual = lista_jogos[id_jogo]
+    ordem = jogo_atual.get_ordem_jogadores()
+    return {"Ordem dos jogadores": ordem}
+
+@app.get("/{id_jogo}/distribuir_territorios")
+def distribuir_territorios(id_jogo: int):
+    if id_jogo not in lista_jogos:
+        return {"erro": "Jogo não encontrado"}
+    jogo_atual = lista_jogos[id_jogo]
+    distribuicao = jogo_atual.distribuir_territorios()
+    return {"Distribuição dos territórios": distribuicao}
+
+@app.get("/{id_jogo}/territorios")
+def obter_territorios(id_jogo: int):
+    if id_jogo not in lista_jogos:
+        return {"erro": "Jogo não encontrado"}
+    jogo_atual = lista_jogos[id_jogo]
+    territorios = jogo_atual.exibir_territorios()
+    return {"Territórios distribuídos": territorios}
