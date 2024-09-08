@@ -68,6 +68,10 @@ class Jogador:
 
     def get_jogador(self):
         return [f'Jogador: {self.id}',f'cor: {self.cor_exercito}',f'objetivo: {self.objetivo}']
+    
+    def jogar_dado(self, dado):
+        self.resultado = 0
+        self.resultado = dado.jogar()
 
 class Dado:
     def __init__(self, lados=6):
@@ -78,6 +82,33 @@ class Dado:
     
 dado6 = Dado()  # Dado de 6 lados
 print(f"Resultado do lançamento do dado de 6 lados: {dado6.jogar()}")
+
+def comparar_resultados(atacante, defensor):
+    """Compara os resultados do atacante e do defensor e determina o vencedor."""
+    if atacante.resultado > defensor.resultado:
+        print(f"{atacante.id} venceu! ({atacante.resultado} contra {defensor.resultado})")
+    else:
+        print(f"{defensor.id} venceu! ({defensor.resultado} contra {atacante.resultado})")
+
+def jogar_batalha(atacante, defensor):
+    """Executa a batalha entre o atacante e o defensor."""
+    dado_atacante = Dado(6)  # Dado de 6 lados para o atacante
+    dado_defensor = Dado(6)  # Dado de 6 lados para o defensor
+
+    # Jogadores lançam os dados
+    atacante.jogar_dado(dado_atacante)
+    defensor.jogar_dado(dado_defensor)
+
+    print(f"{atacante.id} lançou o dado e obteve: {atacante.resultado}")
+    print(f"{defensor.id} lançou o dado e obteve: {defensor.resultado}")
+
+    # Compara os resultados
+    comparar_resultados(atacante, defensor)
+
+# Exemplo de uso
+atacante = Jogador('Atacante','vermelho','Chegar a lua')
+defensor = Jogador('Defensor','verde','Derrubar a torre Eifel')
+jogar_batalha(atacante, defensor)
 
 #----------- rotas ---------------
 
