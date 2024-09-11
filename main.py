@@ -45,6 +45,7 @@ class Jogo:
         self.ordem_jogadores = []
         self.territorios_distribuidos = {}
         self.exercitos_distribuidos = {}
+        self.alocacao_exercitos = {}
 
     def __str__(self):
         return(f'Sou o jogo {self.id}')
@@ -91,7 +92,7 @@ class Jogo:
 
     def distribuir_territorios(self):
         territorios = self.TERRITORIOS.copy()
-        random.shuffle(territorios)  # Embaralha a lista de territórios
+        random.shuffle(territorios)
         jogadores_ids = list(self.lista_jogadores.keys())
         num_jogadores = len(jogadores_ids)
         
@@ -120,7 +121,7 @@ class Jogo:
         
         exercitos_iniciais = calcula_exercitos_iniciais(num_jogadores)
         for jogador_id, jogador in self.lista_jogadores.items():
-            jogador.exercitos = exercitos_iniciais  # Salva o número de exércitos no jogador
+            jogador.exercitos = exercitos_iniciais
             self.exercitos_distribuidos[jogador_id] = exercitos_iniciais
 
         return self.exercitos_distribuidos
@@ -129,6 +130,31 @@ class Jogo:
         if not self.exercitos_distribuidos:
             return "Exércitos ainda não distribuídos"
         return self.exercitos_distribuidos
+    
+    def alocar_exercitos(self, id_jogador, territorio, quantidade):
+        if id_jogador not in self.lista_jogadores:
+            return "Jogador não encontrado"
+        
+        jogador = self.lista_jogadores[id_jogador]
+        if jogador.exercitos < quantidade:
+            return "Jogador não tem exércitos suficientes para alocar"
+
+        jogador.exercitos -= quantidade
+        
+
+        if id_jogador not in self.alocacao_exercitos:
+            self.alocacao_exercitos[id_jogador] = {}
+
+        if territorio not in self.alocacao_exercitos[id_jogador]:
+            self.alocacao_exercitos[id_jogador][territorio] = 0
+
+        self.alocacao_exercitos[id_jogador][territorio] += quantidade
+        return self.alocacao_exercitos[id_jogador]
+
+    def exibir_alocacao_exercitos(self):
+        if not self.alocacao_exercitos:
+            return "Nenhuma alocação de exércitos realizada"
+        return self.alocacao_exercitos
 
 class Jogador:
     def __init__(self, id, cor, objetivo):
@@ -136,6 +162,7 @@ class Jogador:
         self.cor_exercito = cor
         self.objetivo = objetivo
         self.exercitos = 0
+        self.territorios = {}
 
     def get_jogador(self):
         return [f'Jogador: {self.id}', f'cor: {self.cor_exercito}', f'objetivo: {self.objetivo}', f'exércitos: {self.exercitos}']
@@ -218,3 +245,19 @@ def obter_exercitos(id_jogo: int):
     jogo_atual = lista_jogos[id_jogo]
     exercitos = jogo_atual.exibir_exercitos()
     return {"Exércitos distribuídos": exercitos}
+
+@app.get("/{id_jogo}/alocar_exercitos/{player_id}/{territorio}/{quantidade}")
+def alocar_exercitos(id_jogo: int, player_id: int, territorio: str, quantidade: int):
+    if id_jogo not in lista_jogos:
+        return {"erro": "Jogo não encontrado"}
+    jogo_atual = lista_jogos[id_jogo]
+    resultado = jogo_atual.alocar_exercitos(player_id, territorio, quantidade)
+    return {"Resultado da alocação": resultado}
+
+@app.get("/{id_jogo}/alocacao_exercitos")
+def obter_alocacao_exercitos(id_jogo: int):
+    if id_jogo not in lista_jogos:
+        return {"erro": "Jogo não encontrado"}
+    jogo_atual = lista_jogos[id_jogo]
+    alocacao = jogo_atual.exibir_alocacao_exercitos()
+    return {"Alocação dos exércitos": alocacao}
