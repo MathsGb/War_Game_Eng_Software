@@ -1,13 +1,20 @@
-from fastapi import FastAPI
-from fastapi.responses import RedirectResponse
 import random
-
-app = FastAPI()
+from Jogador import *
 
 lista_jogos = {}
 
 def Cria_jogo(id):
     lista_jogos[id] = Jogo(id)
+
+def calcula_exercitos_iniciais(num_jogadores):
+    if num_jogadores == 2:
+        return 40
+    elif num_jogadores == 3:
+        return 35
+    elif num_jogadores == 4:
+        return 30
+    else:
+        return 20  
 
 class Jogo:
     Cores_padrao = {
@@ -34,6 +41,8 @@ class Jogo:
         self.lista_jogadores = {}
         self.ordem_jogadores = []
         self.territorios_distribuidos = {}
+        self.exercitos_distribuidos = {}
+        self.alocacao_exercitos = {}
 
     def __str__(self):
         return(f'Sou o jogo {self.id}')
@@ -80,7 +89,7 @@ class Jogo:
 
     def distribuir_territorios(self):
         territorios = self.TERRITORIOS.copy()
-        random.shuffle(territorios)  # Embaralha a lista de territórios
+        random.shuffle(territorios)
         jogadores_ids = list(self.lista_jogadores.keys())
         num_jogadores = len(jogadores_ids)
         
@@ -102,74 +111,58 @@ class Jogo:
             return "Territórios ainda não distribuídos"
         return self.territorios_distribuidos
 
-class Jogador:
-    def __init__(self, id, cor, objetivo):
-        self.id = id
-        self.cor_exercito = cor
-        self.objetivo = objetivo
+    def distribuir_exercitos(self):
+        num_jogadores = len(self.lista_jogadores)
+        if num_jogadores == 0:
+            return "Nenhum jogador para distribuir exércitos"
+        
+        exercitos_iniciais = calcula_exercitos_iniciais(num_jogadores)
+        for jogador_id, jogador in self.lista_jogadores.items():
+            jogador.exercitos = exercitos_iniciais
+            self.exercitos_distribuidos[jogador_id] = exercitos_iniciais
 
-    def get_jogador(self):
-        return [f'Jogador: {self.id}', f'cor: {self.cor_exercito}', f'objetivo: {self.objetivo}']
+        return self.exercitos_distribuidos
+    
+    def exibir_exercitos(self):
+        if not self.exercitos_distribuidos:
+            return "Exércitos ainda não distribuídos"
+        return self.exercitos_distribuidos
+    
+    def alocar_exercitos(self, id_jogador, territorio, quantidade):
+        if id_jogador not in self.lista_jogadores:
+            return "Jogador não encontrado"
+        
+        jogador = self.lista_jogadores[id_jogador]
+        if jogador.exercitos < quantidade:
+            return "Jogador não tem exércitos suficientes para alocar"
 
-@app.get("/")
-def home():
-    return {"Olá": "Vamos começar!",
-            "Atualmente há:": f"{len(lista_jogos)} jogos"}
+        jogador.exercitos -= quantidade
+        
 
-@app.get("/create/{id_novo_jogo}")
-def novo_jogo(id_novo_jogo: int):
-    Cria_jogo(id_novo_jogo)
-    return RedirectResponse(url="/")
+        if id_jogador not in self.alocacao_exercitos:
+            self.alocacao_exercitos[id_jogador] = {}
 
-@app.get("/{id_jogo}")
-def jogo_lobby(id_jogo: int):
-    try:
-        jogo_atual = lista_jogos[id_jogo]
-        return {1: {f'Você agora está dentro de um jogo de número {jogo_atual.id}'},
-                2: {f'Atualmente tenho {len(jogo_atual.lista_jogadores)} jogadores presentes'},
-                3: {f'Os jogadores atualmente são: {jogo_atual.exibir_jogadores()}'}
-                }
-    except KeyError:
-        return RedirectResponse(url="/")
+        if territorio not in self.alocacao_exercitos[id_jogador]:
+            self.alocacao_exercitos[id_jogador][territorio] = 0
 
-@app.get("/{id_jogo}/add/{player_id}")
-def adiciona_player(id_jogo: int, player_id: int):
-    if id_jogo not in lista_jogos:
-        return {"erro": "Jogo não encontrado"}
-    jogo_atual = lista_jogos[id_jogo]
-    if player_id in jogo_atual.lista_jogadores:
-        return {"erro": "Jogador já adicionado"}
-    jogo_atual.add_jogador(player_id)
-    return {'jogador adicionado com sucesso'}
+        self.alocacao_exercitos[id_jogador][territorio] += quantidade
+        return self.alocacao_exercitos[id_jogador]
 
-@app.get("/{id_jogo}/definir_ordem")
-def definir_ordem(id_jogo: int):
-    if id_jogo not in lista_jogos:
-        return {"erro": "Jogo não encontrado"}
-    jogo_atual = lista_jogos[id_jogo]
-    ordem = jogo_atual.definir_ordem_jogadores()
-    return {"Ordem dos jogadores": ordem}
+    def exibir_alocacao_exercitos(self):
+        if not self.alocacao_exercitos:
+            return "Nenhuma alocação de exércitos realizada"
+        return self.alocacao_exercitos
 
-@app.get("/{id_jogo}/ordem")
-def obter_ordem(id_jogo: int):
-    if id_jogo not in lista_jogos:
-        return {"erro": "Jogo não encontrado"}
-    jogo_atual = lista_jogos[id_jogo]
-    ordem = jogo_atual.get_ordem_jogadores()
-    return {"Ordem dos jogadores": ordem}
+    def exibir_exercitos_por_territorio(self):
+        if not self.alocacao_exercitos:
+            return "Nenhuma alocação de exércitos realizada"
 
-@app.get("/{id_jogo}/distribuir_territorios")
-def distribuir_territorios(id_jogo: int):
-    if id_jogo not in lista_jogos:
-        return {"erro": "Jogo não encontrado"}
-    jogo_atual = lista_jogos[id_jogo]
-    distribuicao = jogo_atual.distribuir_territorios()
-    return {"Distribuição dos territórios": distribuicao}
+        exercitos_por_territorio = {}
 
-@app.get("/{id_jogo}/territorios")
-def obter_territorios(id_jogo: int):
-    if id_jogo not in lista_jogos:
-        return {"erro": "Jogo não encontrado"}
-    jogo_atual = lista_jogos[id_jogo]
-    territorios = jogo_atual.exibir_territorios()
-    return {"Territórios distribuídos": territorios}
+        for jogador_id, territorios in self.alocacao_exercitos.items():
+            for territorio, quantidade in territorios.items():
+                if territorio not in exercitos_por_territorio:
+                    exercitos_por_territorio[territorio] = []
+                exercitos_por_territorio[territorio].append({'jogador_id': jogador_id, 'exercitos': quantidade})
+
+        return exercitos_por_territorio
