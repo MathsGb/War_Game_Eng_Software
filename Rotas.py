@@ -1,8 +1,9 @@
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
-from JogoLobby import *
+from JogoLobby import Jogo
 
 app = FastAPI()
+lista_jogos = {}
 
 @app.get("/")
 def home():
@@ -11,17 +12,16 @@ def home():
 
 @app.get("/create/{id_novo_jogo}")
 def novo_jogo(id_novo_jogo: int):
-    Cria_jogo(id_novo_jogo)
+    lista_jogos[id_novo_jogo] = Jogo(id_novo_jogo)
     return RedirectResponse(url="/")
 
 @app.get("/{id_jogo}")
 def jogo_lobby(id_jogo: int):
     try:
         jogo_atual = lista_jogos[id_jogo]
-        return {1: {f'Você agora está dentro de um jogo de número {jogo_atual.id}'},
-                2: {f'Atualmente tenho {len(jogo_atual.lista_jogadores)} jogadores presentes'},
-                3: {f'Os jogadores atualmente são: {jogo_atual.exibir_jogadores()}'}
-                }
+        return {1: f'Você agora está dentro de um jogo de número {jogo_atual.id}',
+                2: f'Atualmente tenho {len(jogo_atual.lista_jogadores)} jogadores presentes',
+                3: f'Os jogadores atualmente são: {jogo_atual.exibir_jogadores()}'}
     except KeyError:
         return RedirectResponse(url="/")
 
