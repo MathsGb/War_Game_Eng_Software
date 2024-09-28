@@ -34,7 +34,6 @@ class ProxyJogador:
 
         jogador = Jogador(id_jogador, cor, objetivo)
         self.jogo.lista_jogadores[id_jogador] = jogador
-        print(f"Jogador {id_jogador} adicionado com a cor {cor} e o objetivo '{objetivo}'.")
         return jogador
 class Jogo:
 
@@ -57,7 +56,11 @@ class Jogo:
         return(f'Sou o jogo {self.id}')
 
     def add_jogador(self, id_jogador):
-        self.proxyJogador.adicionar_jogador(id_jogador)
+        jogador_adicionado = self.proxyJogador.adicionar_jogador(id_jogador)
+
+        if jogador_adicionado == None:
+            return False
+        return True
 
     def exibir_jogadores(self):
         msg = []
