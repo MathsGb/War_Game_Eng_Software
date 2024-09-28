@@ -1,4 +1,3 @@
-
 from Observer import Observer
 
 class Jogador(Observer):
@@ -7,6 +6,7 @@ class Jogador(Observer):
         self.cor = cor
         self.objetivo = objetivo
         self.exercitos = 0
+        self.territorios_controlados = []
     
     def get_jogador(self):
         return {'id': self.id, 'cor': self.cor, 'objetivo': self.objetivo}
@@ -14,8 +14,8 @@ class Jogador(Observer):
     def update(self, message: str):
         print(f"Jogador {self.id} notificado: {message}")
 
-    def objetivo_completado(self, status_atual):
-        # Lógica que verifica se o objetivo foi completado
-        if status_atual == "objetivo completado":
-            return True
-        return False
+    def adicionar_territorio(self, territorio):
+        self.territorios_controlados.append(territorio)
+
+    def objetivo_completado(self):
+        return any(territorio == self.objetivo for territorio in self.territorios_controlados)

@@ -1,14 +1,29 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import RedirectResponse
-from JogoLobby import *
-from JogoLobby import lista_jogos
+from JogoLobby import Cria_jogo, lista_jogos
 
 app = FastAPI()
 
+def obter_jogo(id_jogo: int):
+    """Função auxiliar para obter um jogo."""
+    jogo = lista_jogos.get(id_jogo)
+    if not jogo:
+        raise HTTPException(status_code=404, detail="Jogo não encontrado")
+    return jogo
+
+def obter_jogador(jogo, player_id: int):
+    """Função auxiliar para obter um jogador em um jogo."""
+    jogador = jogo.lista_jogadores.get(player_id)
+    if not jogador:
+        raise HTTPException(status_code=404, detail="Jogador não encontrado")
+    return jogador
+
 @app.get("/")
 def home():
-    return {"Olá": "Vamos começar!",
-            "Atualmente há:": f"{len(lista_jogos)} jogos"}
+    return {
+        "mensagem": "Vamos começar!",
+        "jogos_ativos": len(lista_jogos)
+    }
 
 @app.get("/create/{id_novo_jogo}")
 def novo_jogo(id_novo_jogo: int):
@@ -17,113 +32,80 @@ def novo_jogo(id_novo_jogo: int):
 
 @app.get("/{id_jogo}")
 def jogo_lobby(id_jogo: int):
-    try:
-        jogo_atual = lista_jogos[id_jogo]
-        return {1: {f'Você agora está dentro de um jogo de número {jogo_atual.id}'},
-                2: {f'Atualmente tenho {len(jogo_atual.lista_jogadores)} jogadores presentes'},
-                3: {f'Os jogadores atualmente são: {jogo_atual.exibir_jogadores()}'}
-                }
-    except KeyError:
-        return RedirectResponse(url="/")
+    jogo_atual = obter_jogo(id_jogo)
+    return {
+        "id": jogo_atual.id,
+        "jogadores_presentes": len(jogo_atual.lista_jogadores),
+        "jogadores": jogo_atual.exibir_jogadores()
+    }
 
 @app.get("/{id_jogo}/add/{player_id}")
 def adiciona_player(id_jogo: int, player_id: int):
-    if id_jogo not in lista_jogos:
-        return {"erro": "Jogo não encontrado"}
-    jogo_atual = lista_jogos[id_jogo]
+    jogo_atual = obter_jogo(id_jogo)
     if player_id in jogo_atual.lista_jogadores:
-        return {"erro": "Jogador já adicionado"}
+        raise HTTPException(status_code=400, detail="Jogador já adicionado")
     jogo_atual.add_jogador(player_id)
-    return {'jogador adicionado com sucesso'}
+    return {"mensagem": "Jogador adicionado com sucesso"}
 
 @app.get("/{id_jogo}/definir_ordem")
 def definir_ordem(id_jogo: int):
-    if id_jogo not in lista_jogos:
-        return {"erro": "Jogo não encontrado"}
-    jogo_atual = lista_jogos[id_jogo]
+    jogo_atual = obter_jogo(id_jogo)
     ordem = jogo_atual.definir_ordem_jogadores()
-    return {"Ordem dos jogadores": ordem}
+    return {"ordem_dos_jogadores": ordem}
 
 @app.get("/{id_jogo}/ordem")
 def obter_ordem(id_jogo: int):
-    if id_jogo not in lista_jogos:
-        return {"erro": "Jogo não encontrado"}
-    jogo_atual = lista_jogos[id_jogo]
+    jogo_atual = obter_jogo(id_jogo)
     ordem = jogo_atual.get_ordem_jogadores()
-    return {"Ordem dos jogadores": ordem}
+    return {"ordem_dos_jogadores": ordem}
 
 @app.get("/{id_jogo}/distribuir_territorios")
 def distribuir_territorios(id_jogo: int):
-    if id_jogo not in lista_jogos:
-        return {"erro": "Jogo não encontrado"}
-    jogo_atual = lista_jogos[id_jogo]
+    jogo_atual = obter_jogo(id_jogo)
     distribuicao = jogo_atual.distribuir_territorios()
-    return {"Distribuição dos territórios": distribuicao}
+    return {"distribuicao_dos_territorios": distribuicao}
 
 @app.get("/{id_jogo}/territorios")
 def obter_territorios(id_jogo: int):
-    if id_jogo not in lista_jogos:
-        return {"erro": "Jogo não encontrado"}
-    jogo_atual = lista_jogos[id_jogo]
+    jogo_atual = obter_jogo(id_jogo)
     territorios = jogo_atual.exibir_territorios()
-    return {"Territórios distribuídos": territorios}
+    return {"territorios_distribuidos": territorios}
 
 @app.get("/{id_jogo}/distribuir_exercitos")
 def distribuir_exercitos(id_jogo: int):
-    if id_jogo not in lista_jogos:
-        return {"erro": "Jogo não encontrado"}
-    jogo_atual = lista_jogos[id_jogo]
+    jogo_atual = obter_jogo(id_jogo)
     distribuicao = jogo_atual.distribuir_exercitos()
-    return {"Distribuição dos exércitos": distribuicao}
+    return {"distribuicao_dos_exercitos": distribuicao}
 
 @app.get("/{id_jogo}/exercitos")
 def obter_exercitos(id_jogo: int):
-    if id_jogo not in lista_jogos:
-        return {"erro": "Jogo não encontrado"}
-    jogo_atual = lista_jogos[id_jogo]
+    jogo_atual = obter_jogo(id_jogo)
     exercitos = jogo_atual.exibir_exercitos()
-    return {"Exércitos distribuídos": exercitos}
+    return {"exercitos_distribuidos": exercitos}
 
 @app.get("/{id_jogo}/alocar_exercitos/{player_id}/{territorio}/{quantidade}")
 def alocar_exercitos(id_jogo: int, player_id: int, territorio: str, quantidade: int):
-    if id_jogo not in lista_jogos:
-        return {"erro": "Jogo não encontrado"}
-    jogo_atual = lista_jogos[id_jogo]
+    jogo_atual = obter_jogo(id_jogo)
+    jogador = obter_jogador(jogo_atual, player_id)
     resultado = jogo_atual.alocar_exercitos(player_id, territorio, quantidade)
-    return {"Resultado da alocação": resultado}
+    return {"resultado_da_alocacao": resultado}
 
 @app.get("/{id_jogo}/alocacao_exercitos")
 def obter_alocacao_exercitos(id_jogo: int):
-    if id_jogo not in lista_jogos:
-        return {"erro": "Jogo não encontrado"}
-    jogo_atual = lista_jogos[id_jogo]
+    jogo_atual = obter_jogo(id_jogo)
     alocacao = jogo_atual.exibir_alocacao_exercitos()
-    return {"Alocação dos exércitos": alocacao}
+    return {"alocacao_dos_exercitos": alocacao}
 
 @app.get("/{id_jogo}/exercitos_por_territorio")
 def obter_exercitos_por_territorio(id_jogo: int):
-    if id_jogo not in lista_jogos:
-        return {"erro": "Jogo não encontrado"}
-    jogo_atual = lista_jogos[id_jogo]
+    jogo_atual = obter_jogo(id_jogo)
     exercitos_por_territorio = jogo_atual.exibir_exercitos_por_territorio()
-    return {"Exércitos por Território": exercitos_por_territorio}
-
-from fastapi import FastAPI
-from JogoLobby import lista_jogos
-
-app = FastAPI()
+    return {"exercitos_por_territorio": exercitos_por_territorio}
 
 @app.get("/{id_jogo}/jogador/{player_id}/verificar_objetivo")
 def verificar_objetivo(id_jogo: int, player_id: int, status_atual: str):
-    if id_jogo not in lista_jogos:
-        return {"erro": "Jogo não encontrado"}
-    
-    jogo_atual = lista_jogos[id_jogo]
-    
-    if player_id not in jogo_atual.lista_jogadores:
-        return {"erro": "Jogador não encontrado"}
-    
-    jogador = jogo_atual.lista_jogadores[player_id]
+    jogo_atual = obter_jogo(id_jogo)
+    jogador = obter_jogador(jogo_atual, player_id)
     objetivo_completado = jogador.objetivo_completado(status_atual)
     
     if objetivo_completado:
