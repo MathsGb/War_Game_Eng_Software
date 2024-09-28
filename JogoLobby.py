@@ -1,5 +1,7 @@
 import random
 from Jogador import *
+from Cor_exercito import *
+from Objetivos import *
 
 lista_jogos = {}
 
@@ -16,20 +18,25 @@ def calcula_exercitos_iniciais(num_jogadores):
     else:
         return 20  
 
+class ProxyJogador:
+    def __init__(self, jogo):
+        self.jogo = jogo
+        self.cores = Cor_exercito()
+        self.objetivos = Objetivos()
+
+    def adicionar_jogador(self, id_jogador):
+        cor = self.cores.encontra_cor()
+        objetivo = self.objetivos.encontra_objetivo()
+
+        if cor is None or objetivo is None:
+            print("Não é possível adicionar o jogador. Cores ou objetivos esgotados.")
+            return None
+
+        jogador = Jogador(id_jogador, cor, objetivo)
+        self.jogo.lista_jogadores[id_jogador] = jogador
+        print(f"Jogador {id_jogador} adicionado com a cor {cor} e o objetivo '{objetivo}'.")
+        return jogador
 class Jogo:
-    Cores_padrao = {
-        1: {'cor': 'vermelho', 'disponivel': True},
-        2: {'cor': 'azul', 'disponivel': True},
-        3: {'cor': 'amarelo', 'disponivel': True},
-        4: {'cor': 'verde', 'disponivel': True},
-    }
-    
-    Objetivos_padrao = {
-        1: {'objetivo': 'Chegar a lua', 'disponivel': True},
-        2: {'objetivo': 'Derrubar a torre Eifel', 'disponivel': True},
-        3: {'objetivo': 'Conquistar a Bosnia', 'disponivel': True},
-        4: {'objetivo': 'Libertar a Bosnia', 'disponivel': True},
-    }
 
     TERRITORIOS = [
         'Território 1', 'Território 2', 'Território 3', 'Território 4',
@@ -44,30 +51,13 @@ class Jogo:
         self.exercitos_distribuidos = {}
         self.alocacao_exercitos = {}
 
+        self.proxyJogador = ProxyJogador(self)
+
     def __str__(self):
         return(f'Sou o jogo {self.id}')
 
-    def encontra_cor(self):
-        for i in self.Cores_padrao:
-            if self.Cores_padrao[i]['disponivel'] == True:
-                self.Cores_padrao[i]['disponivel'] = False
-                return self.Cores_padrao[i]['cor']
-        return None
-    
-    def encontra_objetivo(self):
-        for i in self.Objetivos_padrao:
-            if self.Objetivos_padrao[i]['disponivel'] == True:
-                self.Objetivos_padrao[i]['disponivel'] = False
-                return self.Objetivos_padrao[i]['objetivo']
-        return None
-
     def add_jogador(self, id_jogador):
-        cor = self.encontra_cor()
-        objetivo = self.encontra_objetivo()
-
-        if cor == None or objetivo == None:
-            return print("Jogador não adicionado")
-        self.lista_jogadores[id_jogador] = Jogador(id_jogador, cor, objetivo)
+        self.proxyJogador.adicionar_jogador(id_jogador)
 
     def exibir_jogadores(self):
         msg = []
