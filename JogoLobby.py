@@ -1,5 +1,6 @@
 import random
-from Jogador import *
+from Jogador import Jogador
+from Observer import Subject, Observer
 
 lista_jogos = {}
 
@@ -16,7 +17,7 @@ def calcula_exercitos_iniciais(num_jogadores):
     else:
         return 20  
 
-class Jogo:
+class Jogo(Subject):
     Cores_padrao = {
         1: {'cor': 'vermelho', 'disponivel': True},
         2: {'cor': 'azul', 'disponivel': True},
@@ -39,6 +40,7 @@ class Jogo:
     def __init__(self, id):
         self.id = id
         self.lista_jogadores = {}
+        self.observers = []
         self.ordem_jogadores = []
         self.territorios_distribuidos = {}
         self.exercitos_distribuidos = {}
@@ -67,7 +69,19 @@ class Jogo:
 
         if cor == None or objetivo == None:
             return print("Jogador não adicionado")
-        self.lista_jogadores[id_jogador] = Jogador(id_jogador, cor, objetivo)
+        jogador = Jogador(id_jogador, cor, objetivo)
+        self.lista_jogadores[id_jogador] = jogador
+        self.add_observer(jogador)
+
+    def add_observer(self, observer: Observer):
+        self.observers.append(observer)
+
+    def remove_observer(self, observer: Observer):
+        self.observers.remove(observer)
+
+    def notify_observers(self, message: str):
+        for observer in self.observers:
+            observer.update(message)
 
     def exibir_jogadores(self):
         msg = []
@@ -166,3 +180,13 @@ class Jogo:
                 exercitos_por_territorio[territorio].append({'jogador_id': jogador_id, 'exercitos': quantidade})
 
         return exercitos_por_territorio
+
+    def verificar_objetivo(self, id_jogador, status_atual):
+        if id_jogador not in self.lista_jogadores:
+            return "Jogador não encontrado"
+        
+        jogador = self.lista_jogadores[id_jogador]
+        if jogador.objetivo_completado(status_atual):
+            self.notify_observers(f"O jogador {jogador.id} completou seu objetivo!")
+            return True
+        return False

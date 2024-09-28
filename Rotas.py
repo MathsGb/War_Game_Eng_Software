@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from JogoLobby import *
+from JogoLobby import lista_jogos
 
 app = FastAPI()
 
@@ -106,3 +107,30 @@ def obter_exercitos_por_territorio(id_jogo: int):
     jogo_atual = lista_jogos[id_jogo]
     exercitos_por_territorio = jogo_atual.exibir_exercitos_por_territorio()
     return {"Exércitos por Território": exercitos_por_territorio}
+
+from fastapi import FastAPI
+from JogoLobby import lista_jogos
+
+app = FastAPI()
+
+@app.get("/{id_jogo}/jogador/{player_id}/verificar_objetivo")
+def verificar_objetivo(id_jogo: int, player_id: int, status_atual: str):
+    if id_jogo not in lista_jogos:
+        return {"erro": "Jogo não encontrado"}
+    
+    jogo_atual = lista_jogos[id_jogo]
+    
+    if player_id not in jogo_atual.lista_jogadores:
+        return {"erro": "Jogador não encontrado"}
+    
+    jogador = jogo_atual.lista_jogadores[player_id]
+    objetivo_completado = jogador.objetivo_completado(status_atual)
+    
+    if objetivo_completado:
+        return {
+            "mensagem": f"Parabéns, jogador {jogador.id}! Você completou o objetivo: {jogador.objetivo}"
+        }
+    else:
+        return {
+            "mensagem": f"Jogador {jogador.id}, você ainda não completou o objetivo: {jogador.objetivo}. Continue jogando!"
+        }
